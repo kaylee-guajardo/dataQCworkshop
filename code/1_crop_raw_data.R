@@ -24,7 +24,7 @@ croppedplots_loc <- paste0(base_loc, "3_cropped_plots/")
 
 # name of your LDRTimes file that has the lookup table with deployment/retrieval dates
 # note: the line below assumes ldrtimes_fn is in rawdata_loc folder
-ldrtimes_fn <- "ldrtimes_2022.xlsx"
+ldrtimes_fn <- "../../ldrtimes_2022.xlsx"
 
 # -------------------------------------------
 # editing mostly takes place above this line
@@ -50,7 +50,7 @@ ldrtimes = readxl::read_xlsx(paste0(rawdata_loc, ldrtimes_fn))
 i = 0
 for(this.file in csv_files){
   i = i + 1
-  #this.file = csv_files[1] # uncomment to troubleshoot within loop
+  this.file = csv_files[1] # uncomment to troubleshoot within loop
   cat(paste0("Reading file ", i, " of ", length(csv_files), ": ", this.file), fill = TRUE)
 
   # extract metadata from the filename

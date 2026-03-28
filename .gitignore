@@ -3,3 +3,6 @@
 .RData
 .Ruserdata
 .DS_Store
+data/2022_summer/2_cropped_csv
+data/2022_summer/3_cropped_plots
+data/2022_summer/4_qc_plots

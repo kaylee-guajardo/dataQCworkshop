@@ -6,6 +6,8 @@ library(plotly)
 library(htmlwidgets)
 library(lubridate)
 
+library(beepr)
+
 
 # base folder
 base_loc <- "data/2022_summer/"
@@ -59,6 +61,7 @@ for (selection in filenames) {
 
 } # filenames loop
 cat("Done reading in cropped data.", fill = TRUE)
+beep()
 
 cat("Computing temperature differences...", fill = TRUE)
 # only compute AWMaxDiff and AirRange if there is air data for at least one site
