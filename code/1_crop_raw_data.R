@@ -62,7 +62,7 @@ ldrtimes = readxl::read_xlsx(paste0(rawdata_loc, ldrtimes_fn))
 i = 0
 for(this.file in csv_files){
   i = i + 1
-  # this.file = csv_files[1] # uncomment to troubleshoot within loop
+  # this.file = csv_files[7] # uncomment to troubleshoot within loop
   cat(paste0("Reading file ", i, " of ", length(csv_files), ": ", this.file), fill = TRUE)
 
   # extract metadata from the filename
@@ -136,18 +136,24 @@ for(this.file in csv_files){
 
   #Create a dataframe of the raw and cropped data
   cropvraw <- dplyr::left_join(this.data, cropped.data, by=c("row.num", "datetime")) %>%
-    dplyr::rename(raw.temp = temperature.x,
-                  cropped.temp = temperature.y) %>%#rename temperature from each file
+    dplyr::rename(Raw = temperature.x,
+                  Cropped = temperature.y) |>
+    dplyr::mutate(
+      Cropped = ifelse(is.na(Cropped), Raw, NA)
+    ) %>%
     #create new column of data type (raw or cropped for plotting in ggplot)
-    tidyr::pivot_longer(cols = raw.temp:cropped.temp,
-                        names_to="type", values_to="temp")
+    tidyr::pivot_longer(cols = Raw:Cropped,
+                        names_to="type", values_to="temp") %>%
+    dplyr::mutate(
+      type = factor(type, levels = c("Raw", "Cropped"))
+    )
 
   cropvraw.plot <- ggplot2::ggplot(cropvraw,
                                    ggplot2::aes(x = datetime,
                                                 y = temp,
                                                 color = type)) +
     ggplot2::geom_line(na.rm=TRUE) +
-    ggplot2::geom_point(na.rm=TRUE) +
+    ggplot2::geom_line(na.rm=TRUE) +
     ggplot2::labs(title = paste0(" Raw versus Cropped data"),
                   x = "Date", y = "Temperature (C)")+
     ggplot2::theme(axis.text = ggplot2::element_text(colour = "black", size = (12)))
