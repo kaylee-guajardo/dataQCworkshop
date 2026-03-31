@@ -128,8 +128,8 @@ if("air" %in% unique(combined$media)){
 
 # set some plotting parameters
 sites <- unique(combined$sitename)
-range.colors <- c(AirRange = "blue", WaterRange = "black")
-maxdiff.colors <- c(
+range_colors <- c(AirRange = "blue", WaterRange = "black")
+maxdiff_colors <- c(
   dailymax_air = "blue",
   dailymax_water = "black",
   AWMaxDiff = "purple"
@@ -143,11 +143,18 @@ for(s in sites){
     paste0("Making QC plots for site ", i, " of ", length(sites), ": ", s),
     fill = TRUE
   )
-  # s = sites[1] # uncomment if you want to troubleshoot this loop
+  # s = sites[15] # uncomment if you want to troubleshoot this loop
   # filter the data to just this site
-  this.site.combined = dplyr::filter(combined, sitename == s)
+  this_site_combined = dplyr::filter(combined, sitename == s)
+
+  # signs of dewatering in the range plot:
+  # - daily range in water temp > 3 deg C
+  # - daily range in air temp approx. equals daily range in water temp
+  # signs of burial in the range plot:
+  # - daily range in water temp drops suddenly
+  # - daily range in water temp < 0.5 deg C
   rangeplot <- ggplot2::ggplot(
-    this.site.combined %>%
+    this_site_combined %>%
       dplyr::filter(calc %in% c("AirRange","WaterRange")),
     ggplot2::aes(x = date, y = value, color = calc)
   ) +
@@ -159,7 +166,7 @@ for(s in sites){
       y = "Temperature (C)",
       color = "Medium"
     ) +
-    ggplot2::scale_color_manual(values = range.colors) +
+    ggplot2::scale_color_manual(values = range_colors) +
     ggplot2::geom_hline(yintercept = 3, linewidth = 0.3, color = "red")
 
   ggplot2::ggsave(
@@ -170,8 +177,13 @@ for(s in sites){
     units = "in"
   )
 
+  # signs of dewatering in the maxdiff plot:
+  # - daily max water temp > 20 deg C
+  # - difference between daily max air and water temp is approx. 0
+  # signs of burial in the maxdiff plot:
+  # - daily max water temp drops suddenly
   maxdiffplot <- ggplot2::ggplot(
-    this.site.combined %>%
+    this_site_combined %>%
       dplyr::filter(calc %in% c("dailymax_air", "dailymax_water", "AWMaxDiff")),
     ggplot2::aes(x = date, y = value, color = calc)
   ) +
@@ -182,7 +194,7 @@ for(s in sites){
       y = "Temperature (C)",
       color = "Medium"
     ) +
-    ggplot2::scale_color_manual(values = maxdiff.colors) +
+    ggplot2::scale_color_manual(values = maxdiff_colors) +
     ggplot2::geom_hline(yintercept = 20, linewidth = 0.3, color = "red")
 
   ggplot2::ggsave(
