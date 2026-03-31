@@ -30,6 +30,18 @@ ldrtimes_fn <- "../../ldrtimes_2022.xlsx"
 # editing mostly takes place above this line
 # -------------------------------------------
 
+# rawdata_loc must already exist
+if(!dir.exists(rawdata_loc)){
+  stop(paste(rawdata_loc, "does not exist"))
+}
+# cropped_loc and croppedplots_loc can be created if they don't exist
+if(!dir.exists(cropped_loc)){
+  dir.create(cropped_loc)
+}
+if(!dir.exists(croppedplots_loc)){
+  dir.create(croppedplots_loc)
+}
+
 # check that R can find your raw data files
 # Get all temperature data filenames
 # note: * is called a glob, short for global
@@ -50,7 +62,7 @@ ldrtimes = readxl::read_xlsx(paste0(rawdata_loc, ldrtimes_fn))
 i = 0
 for(this.file in csv_files){
   i = i + 1
-  this.file = csv_files[1] # uncomment to troubleshoot within loop
+  # this.file = csv_files[1] # uncomment to troubleshoot within loop
   cat(paste0("Reading file ", i, " of ", length(csv_files), ": ", this.file), fill = TRUE)
 
   # extract metadata from the filename

@@ -6,9 +6,6 @@ library(plotly)
 library(htmlwidgets)
 library(lubridate)
 
-library(beepr)
-
-
 # base folder
 base_loc <- "data/2022_summer/"
 
@@ -20,6 +17,15 @@ qc_plots_loc <- paste0(base_loc, "4_qc_plots/")
 # -------------------------------------------
 # editing mostly takes place above this line
 # -------------------------------------------
+
+# rawdata_loc must already exist
+if(!dir.exists(cropped_loc)){
+  stop(paste(cropped_loc, "does not exist"))
+}
+# qc_plots_loc can be created if it doesn't exist
+if(!dir.exists(qc_plots_loc)){
+  dir.create(qc_plots_loc)
+}
 
 # get a list of all the cropped files
 filenames <- list.files(path = cropped_loc, pattern=".csv")
@@ -61,7 +67,6 @@ for (selection in filenames) {
 
 } # filenames loop
 cat("Done reading in cropped data.", fill = TRUE)
-beep()
 
 cat("Computing temperature differences...", fill = TRUE)
 # only compute AWMaxDiff and AirRange if there is air data for at least one site
