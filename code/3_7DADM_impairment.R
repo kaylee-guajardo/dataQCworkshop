@@ -4,7 +4,6 @@ library(dplyr)
 library(lubridate)
 # you also need the runner package (but you don't need to load it)
 
-# Jess filepaths for 2023-2024 data from Kim (need to update handling of time zone)
 base_loc = "data/"
 fall_data_loc <- paste0(base_loc, "2023_fall_data_qcd/")
 sum_data_loc <- paste0(base_loc, "2024_summer_data_qcd/")
@@ -37,11 +36,12 @@ data_files_sum = list.files(path = sum_data_loc, pattern = '*csv')
 # combine fall and summer filenames into one list so we just need one loop
 data_files = c(data_files_fall, data_files_sum)
 
+# exclude certain sites
 not_Jims_Well = unlist(lapply(data_files, function(x) !startsWith(x, "JimsWell")))
 data_files = data_files[not_Jims_Well]
 
 # loop through each file, read it in, process it
-all_data <-NULL # Create new data frame to hold combined data
+all_data <- NULL # Create new data frame to hold combined data
 
 file_no = 0
 for(this_file in data_files){ # for each file,
@@ -65,14 +65,16 @@ for(this_file in data_files){ # for each file,
   }
 
   # read in the data (this_file) from the right directory (file_dir)
-  this_data = readr::read_csv(file = paste0(file_dir, this_file),
-                              skip = 1, # skip header line
-                              # the only columns we really need are 2, 3, 10, and 13,
-                              # (date, time, water temp, and the QC indicator UseForCalc)
-                              # but we can keep them all for reference
-                              col_select = c(2, 3, 10, 13), # read only the four columns of data we need
-                              col_names = FALSE, # don't try to name columns from a row of the file
-                              show_col_types = FALSE) %>% # suppresses print message
+  this_data = readr::read_csv(
+    file = paste0(file_dir, this_file),
+    skip = 1, # skip header line
+    # the only columns we really need are 2, 3, 10, and 13,
+    # (date, time, water temp, and the QC indicator UseForCalc)
+    # but we can keep them all for reference
+    col_select = c(2, 3, 10, 13), # read only the four columns of data we need
+    col_names = FALSE, # don't try to name columns from a row of the file
+    show_col_types = FALSE
+  ) %>% # suppresses print message
     data.frame() %>% # get rid of annoying attribute information
     # the next several lines convert the character-format datetime to an R POSIXct object
     # ymd_hms is the format the character string is in initially; it tells R
@@ -93,9 +95,13 @@ for(this_file in data_files){ # for each file,
   # add this file's data to the combined data frame
   all_data <- dplyr::bind_rows(all_data, this_data)
   # print some basic info to the R Console to update us on what was read in
-  cat(paste0(" - Site ", sitename, " Deployment ", deploy_season,
-             " Dates ", min(this_data$Date), " to ", max(this_data$Date)),
-      fill = TRUE)
+  cat(
+    paste0(
+      " - Site ", sitename, " Deployment ", deploy_season,
+      " Dates ", min(this_data$Date), " to ", max(this_data$Date)
+    ),
+    fill = TRUE
+  )
 } # end for-loop
 cat("Done reading in QC'd data.", fill = TRUE)
 
@@ -108,19 +114,32 @@ temp_stats = all_data %>%
   dplyr::summarize(DailyMax = max(WaterTemp, na.rm = TRUE), .groups = 'drop') %>%
   # add in any missing SiteName-Date combinations so we can tell which data is
   # for consecutive dates
-  dplyr::right_join(data.frame(SiteName = rep(unique(all_data$SiteName),
-                                              each = as.integer(max(all_data$Date)-min(all_data$Date))+1),
-                               Date = rep(seq(min(all_data$Date), max(all_data$Date), 1),
-                                          dplyr::n_distinct(all_data$SiteName))),
-                    by = dplyr::join_by(SiteName, Date)) %>%
+  dplyr::right_join(
+    data.frame(
+      SiteName = rep(
+        unique(all_data$SiteName),
+        each = as.integer(max(all_data$Date) - min(all_data$Date)) + 1
+      ),
+      Date = rep(
+        seq(min(all_data$Date), max(all_data$Date), 1),
+        dplyr::n_distinct(all_data$SiteName))
+    ),
+    by = dplyr::join_by(SiteName, Date)
+  ) %>%
   # sort by SiteName first, then by Date within SiteName
   dplyr::arrange(SiteName, Date) %>%
   # compute 7DADM
   dplyr::group_by(SiteName) %>%
-  dplyr::mutate(sevenDADM = runner::mean_run(x = DailyMax,
-                                             k = 7, lag = -3,
-                                             idx = Date,
-                                             na_pad = TRUE, na_rm = FALSE)) %>%
+  dplyr::mutate(
+    sevenDADM = runner::mean_run(
+      x = DailyMax,
+      k = 7,
+      lag = -3,
+      idx = Date,
+      na_pad = TRUE,
+      na_rm = FALSE
+    )
+  ) %>%
   dplyr::ungroup()
 
 cat("Done computing 7DADM.", fill = TRUE)
