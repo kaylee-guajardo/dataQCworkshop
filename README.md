@@ -22,6 +22,12 @@ Or if you just need `htmlwidgets`, you can run the following code:
 install.packages("htmlwidgets")
 ```
 
+## A note about using functions from packages
+
+In this code, most or all functions from packages are written `packagename::functionname`, such as `dplyr::mutate`. Usually you probably see the function without the packagename specified, like `mutate`. If you load the package using `library(dplyr)`, then you can use `mutate` without specifying that it is from `dplyr`. Therefore, you often see code in which the packages are loaded using `library()`, and then the package name is omitted when calling the functions from those packages. Even though I have loaded the packages at the beginning of these scripts so it's clear what packages are being used, here are two reasons I have opted to still show the package name in each function call as in `dplyr::mutate`:
+
+1. I adapted this code into a dataQCtools R package, and in R packages these package dependencies are made explicit.
+2. It shows you what package each function comes from.
 
 
 ## Past and upcoming workshops using this repo
