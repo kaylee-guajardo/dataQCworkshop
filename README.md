@@ -2,6 +2,28 @@
 
 This repository (repo) contains the three main dataQCtools scripts as well as example data for the purposes of practicing with or demonstrating the code. The data QC code here is drawn from [dataQCtools](https://github.com/tribalxg/dataQCtools), which has more documentation and an R package made from an older version of this code.
 
+## Necessary packages
+
+You will need to have the following five R packages installed on your computer (`tidyverse` is actually a suite of multiple R packages): `tidyverse`, `readxl`, `plotly`, `htmlwidgets`, `runner`. If you don't have any of the packages, you can run the following code:
+
+```{r}
+install.packages(c("tidyverse", "readxl", "plotly", "htmlwidgets", "runner"))
+```
+
+Otherwise, you can use install.packages just on the packages you need. For instance, if you just need `htmlwidgets` and `runner`, you can run the following code:
+
+```{r}
+install.packages(c("htmlwidgets", "runner"))
+```
+
+Or if you just need `htmlwidgets`, you can run the following code:
+
+```{r}
+install.packages("htmlwidgets")
+```
+
+
+
 ## Past and upcoming workshops using this repo
 
 - PNWTCG in-person meeting, Mar 2026
