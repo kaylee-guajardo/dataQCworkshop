@@ -1,14 +1,14 @@
 # load necessary libraries
-library(readxl)
+library(readxl) # for reading in Excel files
 # all the following six libraries can be loaded either in a single line using
 # library(tidyverse)
 # or separately as below
 library(lubridate) # for handling dates
-library(stringr)
-library(readr)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
+library(stringr) # for handling strings (text)
+library(readr) # for reading in csv files
+library(dplyr) # for manipulating data
+library(tidyr) # for tidying data
+library(ggplot2) # for making plots
 
 # base folder
 base_loc <- "data/2022_summer/"
@@ -23,7 +23,7 @@ cropped_loc <- paste0(base_loc, "2_cropped_csv/")
 croppedplots_loc <- paste0(base_loc, "3_cropped_plots/")
 
 # name of your LDRTimes file that has the lookup table with deployment/retrieval dates
-# note: the line below assumes ldrtimes_fn is in rawdata_loc folder
+# note: the file path below starts from rawdata_loc folder
 ldrtimes_fn <- "../../ldrtimes_2022.xlsx"
 
 # -------------------------------------------
@@ -43,125 +43,155 @@ if(!dir.exists(croppedplots_loc)){
 }
 
 # check that R can find your raw data files
-# Get all temperature data filenames
-# note: * is called a glob, short for global
-# IMPORTANT: filenames must be in the format sitename_medium_deployseason_deployyear.csv
+#  - list.files gets all temperature data filenames
+#  - note: * is called a glob, short for global
+#  - IMPORTANT: filenames must be in the format
+#    sitename_medium_deployseason_deployyear.csv
 #            e.g. NolanLower_air_sum_23.csv
 csv_files = list.files(path = rawdata_loc, pattern = '*csv')
-# this is now a list of all filenames; we haven't read in the data yet, but
-# make sure this lists all the raw files you want to crop
+# csv_files is a list of all filenames to be cropped
+# we haven't read in the data yet
+# make sure this lists all the raw files you want to crop:
 csv_files
 
 # read in LDR file and take a look at it
-# note: this assumes the LDR file is in the folder indicated by rawdata_loc
+# - note: this assumes the filepath ldrtimes_fn starts from the folder indicated by rawdata_loc
 ldrtimes = readxl::read_xlsx(paste0(rawdata_loc, ldrtimes_fn))
 
 # once you're sure that file paths are working and your ldrtimes looks right,
 # crop the files!
 
 i = 0
-for(this.file in csv_files){
+for(this_file in csv_files){
   i = i + 1
-  # this.file = csv_files[7] # uncomment to troubleshoot within loop
-  cat(paste0("Reading file ", i, " of ", length(csv_files), ": ", this.file), fill = TRUE)
+  # this_file = csv_files[7] # uncomment to troubleshoot within loop
+  cat(
+    paste0("Reading file ", i, " of ", length(csv_files), ": ", this_file),
+    fill = TRUE
+  )
 
-  # extract metadata from the filename
-  filename.parts = stringr::str_split_1(this.file, '[_.]')
-  csv.site = filename.parts[1]
-  csv.media = filename.parts[2]
-  csv.season = filename.parts[3]
-  csv.year = filename.parts[4]
+  # extract metadata from the filename to include in the dataset in new columns later
+  filename.parts = stringr::str_split_1(this_file, '[_.]')
+  csv_site = filename.parts[1]
+  csv_medium = filename.parts[2]
+  csv_season = filename.parts[3]
+  csv_year = filename.parts[4]
 
-  # convert the character-format datetime to an R POSIXct object
+  # convert the character-format datetime to an R POSIXct object.
   # ymd_hm is the format the character string is in initially; it tells R
-  # how to read and interpret the character string
-  # sometimes R reads in the datetime format as mdy_hms and sometimes mdy_hm.
-  # This tryCatch handles either hh:mm:ss or hh:mm format in csv files
-  this.data =  tryCatch(
+  # how to read and interpret the character string.
+  # Sometimes R reads in the datetime format as mdy_hms and sometimes mdy_hm.
+  # This tryCatch handles csv files with either hh:mm:ss or hh:mm format.
+  this_data =  tryCatch(
     {
-      readr::read_csv(paste0(rawdata_loc, this.file),
-                      skip = 2, # skip the first two lines of the file
-                      col_select = 1:3, # read only the first three columns of data
-                      col_names = FALSE, # don't try to name columns from a row of the file
-                      show_col_types = FALSE) %>% # suppresses print message
-        dplyr::rename("row.num" = X1,
-                      "datetime" = X2,
-                      "temperature" = X3) %>%
+      readr::read_csv(
+        paste0(rawdata_loc, this_file),
+        skip = 2, # skip the first two lines of the file
+        col_select = 1:3, # read only the first three columns of data
+        col_names = FALSE, # don't try to name columns from a row of the file
+        show_col_types = FALSE
+      ) %>% # suppresses print message
+        dplyr::rename(
+          "rowID" = X1,
+          "datetime" = X2,
+          "temperature" = X3
+        ) %>%
         dplyr::mutate(datetime = lubridate::mdy_hms(datetime)) #for datetime in hh:mm:ss
     },
     warning = function(cond) { #if datetime isn't in hh:mm:ss, will now try hh:mm format
-      readr::read_csv(paste0(rawdata_loc, this.file),
-                      skip = 2, # skip the first two lines of the file
-                      col_select = 1:3, # read only the first three columns of data
-                      col_names = FALSE, # don't try to name columns from a row of the file
-                      show_col_types = FALSE) %>% # suppresses print message
-        dplyr::rename("row.num" = X1,
-                      "datetime" = X2,
-                      "temperature" = X3) %>%
+      readr::read_csv(
+        paste0(rawdata_loc, this_file),
+        skip = 2, # skip the first two lines of the file
+        col_select = 1:3, # read only the first three columns of data
+        col_names = FALSE, # don't try to name columns from a row of the file
+        show_col_types = FALSE
+      ) %>% # suppresses print message
+        dplyr::rename(
+          "rowID" = X1,
+          "datetime" = X2,
+          "temperature" = X3
+        ) %>%
         dplyr::mutate(datetime = lubridate::mdy_hm(datetime)) #for datetime in hh:mm
     }
   )
 
   # crop the data
-  deploy.retrieval = ldrtimes %>%
+  deploy_retrieval = ldrtimes %>%
     # select the row(s) of ldrtimes that match this datafile
     # should be exactly one row, but if there are no rows or multiple rows that
     # match, this step will pull that many rows
-    dplyr::filter(site == csv.site, deploy_season == csv.season,
-                  deploy_year == csv.year, media == csv.media) %>%
+    dplyr::filter(
+      site == csv_site,
+      deploy_season == csv_season,
+      deploy_year == csv_year,
+      media == csv_medium
+    ) %>%
     # keep just the deploy_time and retrieval_time variables/columns
     dplyr::select(deploy_time, retrieval_time)
 
-  if(nrow(deploy.retrieval) == 0){
+  if(nrow(deploy_retrieval) == 0){
     stop("no rows of ldrtimes matched this csv file.")
   }
-  if(nrow(deploy.retrieval) > 1){
+  if(nrow(deploy_retrieval) > 1){
     stop("multiple rows of ldrtimes matched this csv file.")
   }
 
-  deploy = deploy.retrieval$deploy_time
-  retrieval = deploy.retrieval$retrieval_time
+  deploy = deploy_retrieval$deploy_time
+  retrieval = deploy_retrieval$retrieval_time
 
   if(retrieval > deploy) {
-    cropped.data = dplyr::filter(this.data,
-                                 datetime > deploy,
-                                 datetime < retrieval)
+    cropped_data = dplyr::filter(
+      this_data,
+      datetime > deploy,
+      datetime < retrieval
+    )
 
   } # if(retrieval > deploy)
 
   # write cropped csv files to cropped folder
-  readr::write_csv(cropped.data,
-                   file=paste0(cropped_loc,
-                               stringr::str_split_i(this.file, "[.]", 1), "_cropped.csv"))
+  readr::write_csv(
+    cropped_data,
+    file=paste0(
+      cropped_loc,
+      stringr::str_split_i(this_file, "[.]", 1),
+      "_cropped.csv"
+    )
+  )
 
   #Create a dataframe of the raw and cropped data
-  cropvraw <- dplyr::left_join(this.data, cropped.data, by=c("row.num", "datetime")) %>%
-    dplyr::rename(Raw = temperature.x,
-                  Cropped = temperature.y) |>
-    dplyr::mutate(
-      Cropped = ifelse(is.na(Cropped), Raw, NA)
-    ) %>%
+  cropped_vs_raw <- dplyr::left_join(this_data, cropped_data, by=c("rowID", "datetime")) %>%
+    dplyr::rename(
+      Raw = temperature.x,
+      Cropped = temperature.y
+    ) |>
+    dplyr::mutate(Cropped = ifelse(is.na(Cropped), Raw, NA)) %>%
     #create new column of data type (raw or cropped for plotting in ggplot)
-    tidyr::pivot_longer(cols = Raw:Cropped,
-                        names_to="type", values_to="temp") %>%
-    dplyr::mutate(
-      type = factor(type, levels = c("Raw", "Cropped"))
-    )
+    tidyr::pivot_longer(
+      cols = Raw:Cropped,
+      names_to="type", values_to="temp"
+    ) %>%
+    dplyr::mutate(type = factor(type, levels = c("Raw", "Cropped")))
 
-  cropvraw.plot <- ggplot2::ggplot(cropvraw,
-                                   ggplot2::aes(x = datetime,
-                                                y = temp,
-                                                color = type)) +
-    ggplot2::geom_line(na.rm=TRUE) +
-    ggplot2::geom_line(na.rm=TRUE) +
-    ggplot2::labs(title = paste0(" Raw versus Cropped data"),
-                  x = "Date", y = "Temperature (C)")+
+  cropped_plot <- ggplot2::ggplot(
+    cropped_vs_raw,
+    ggplot2::aes(x = datetime, y = temp, color = type)
+  ) +
+    ggplot2::geom_line(na.rm = TRUE) +
+    ggplot2::geom_line(na.rm = TRUE) +
+    ggplot2::labs(
+      title = paste0(" Raw versus Cropped data"),
+      x = "Date",
+      y = "Temperature (C)"
+    )+
     ggplot2::theme(axis.text = ggplot2::element_text(colour = "black", size = (12)))
 
-  ggplot2::ggsave(paste0(croppedplots_loc, csv.site, "_",
-                         csv.media, "_rawvscroppeddata.png"),
-                  cropvraw.plot,
-                  width = 11, height = 8.5, units = "in")
+  ggplot2::ggsave(
+    paste0(croppedplots_loc, csv_site, "_", csv_medium, "_rawvscroppeddata.png"),
+    cropped_plot,
+    width = 11,
+    height = 8.5,
+    units = "in"
+  )
 
 }; cat("Done.", fill = TRUE)
 
