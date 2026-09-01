@@ -211,9 +211,11 @@ plot_cropped_data(cropped.data, this.data, ldrtimes)
 # Sweet, works!
 
 # FUNCTION 4: Wrapper / putting it all together ----
-script1_function <- function(csv_files, # List of csv files
-                             rawdata_loc,
-                             ldrtimes
+script1_function <- function(csv_files, # Needed for forloop - a list of csv files
+                             rawdata_loc, # Needed for function 1: prep_raw_data
+                             ldrtimes, # Needed for all called functions
+                             cropped_loc, # Where to save cropped data files
+                             croppedplots_loc # Where to save cropped data plot images
                              ){
   # Initiate iteration
   i <- 0
@@ -224,14 +226,36 @@ script1_function <- function(csv_files, # List of csv files
     i <- i + 1
     csv_file <- csv_files[i]
 
-    # Run custom functions
+    # Grab naming conventions of csv file for use in custom function 3
+    # extract metadata from the filename
+    filename.parts = stringr::str_split_1(csv_file, '[_.]') # Follows req'd
+    # structure defined previously: site_media_season_year
+    csv.site = filename.parts[1]
+    csv.media = filename.parts[2]
+
+    # Run custom functions...
+    # Function 1
     this.data <- prep_raw_data(rawdata_loc, csv_file, ldrtimes)
+
+    # Function 2
     cropped.data <- crop_raw_data(this.data, csv_file, ldrtimes)
+    # Write cropped csv files to cropped folder using cropped data
+    readr::write_csv(cropped.data,
+                     file=paste0(cropped_loc,
+                                 stringr::str_split_i(csv_file, "[.]", 1), "_cropped.csv"))
+    # Same name as original file,but with a "_cropped.csv" suffix
+
+    # Function 3
     cropped.plot <- plot_cropped_data(cropped.data, this.data, ldrtimes)
+    # Save cropped plot as image file
+    ggplot2::ggsave(paste0(croppedplots_loc, csv.site, "_", # Save created plot as image file
+                           csv.media, "_rawvscroppeddata.png"),
+                    cropped.plot,
+                    width = 11, height = 8.5, units = "in")
 
   }
 
-  return(cropped.plot)
+  return(cat("Done!"))
 
 }
 # Right now, once function 4 finished running, it outputs the final cropped data
@@ -243,6 +267,9 @@ script1_function <- function(csv_files, # List of csv files
 # on the objectives of the (Hoh) tribe.
 
 # Test function 4
-script1_function(csv_files, rawdata_loc, ldrtimes)
-# Works, besides the fact that it only returns the final cropped plot from
-# the csv file list.
+script1_function(csv_files, # Needed for forloop - a list of csv files
+                 rawdata_loc, # Needed for function 1: prep_raw_data
+                 ldrtimes, # Needed for all called functions
+                 cropped_loc, # Where to save cropped data files
+                 croppedplots_loc)
+# Works!
