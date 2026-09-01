@@ -210,33 +210,39 @@ plot_cropped_data <- function(cropped.data, # Single cropped data object
 plot_cropped_data(cropped.data, this.data, ldrtimes)
 # Sweet, works!
 
-# JESS CODE ----
-# Initiate for loop to crop raw data files...
-for(this.file in csv_files){ # For a file in the csv_files list...
+# FUNCTION 4: Wrapper / putting it all together ----
+script1_function <- function(csv_files, # List of csv files
+                             rawdata_loc,
+                             ldrtimes
+                             ){
+  # Initiate iteration
+  i <- 0
 
-  # FUNCTION 1 RELEVANT CODE HAS BEEN REMOVED!!!!
+  # Initiate for loop to crop raw data files...
+  for(csv_file in csv_files){ # For a file in the csv_files list...
 
-  # Create a dataframe of the raw and cropped data
-  cropvraw <- dplyr::left_join(this.data, cropped.data, by=c("row.num", "datetime")) %>% # Cropped data is joined to original raw df
-    dplyr::rename(raw.temp = temperature.x, # Rename columns, such that raw.temp holds the raw temperature
-                  cropped.temp = temperature.y) %>% # Cropped temp. has cropped temperature
-    #create new column of data type (raw or cropped for plotting in ggplot)
-    tidyr::pivot_longer(cols = raw.temp:cropped.temp, # Pivot longer style
-                        names_to="type", values_to="temp")
-  # Plot cropped data
-  cropvraw.plot <- ggplot2::ggplot(cropvraw,
-                                   ggplot2::aes(x = datetime,
-                                                y = temp,
-                                                color = type)) +
-    ggplot2::geom_line(na.rm=TRUE) + # Line through points
-    ggplot2::geom_point(na.rm=TRUE) + # Scatterplot
-    ggplot2::labs(title = paste0(" Raw versus Cropped data"),
-                  x = "Date", y = "Temperature (C)")+
-    ggplot2::theme(axis.text = ggplot2::element_text(colour = "black", size = (12)))
+    i <- i + 1
+    csv_file <- csv_files[i]
 
-  ggplot2::ggsave(paste0(croppedplots_loc, csv.site, "_", # Save created plot as image file
-                         csv.media, "_rawvscroppeddata.png"),
-                  cropvraw.plot,
-                  width = 11, height = 8.5, units = "in")
+    # Run custom functions
+    this.data <- prep_raw_data(rawdata_loc, csv_file, ldrtimes)
+    cropped.data <- crop_raw_data(this.data, csv_file, ldrtimes)
+    cropped.plot <- plot_cropped_data(cropped.data, this.data, ldrtimes)
 
-}; cat("Done.", fill = TRUE) # Print message "Done." when complete
+  }
+
+  return(cropped.plot)
+
+}
+# Right now, once function 4 finished running, it outputs the final cropped data
+# plot from the last file contained in csv_files. Question now is how do we want
+# this to operate in RShiny?
+# Purportedly RShiny becomes slow when having to write files, but there seems like
+# there could be workarounds to this.
+# Could have a number of tabs open showing the different plots? Really depends
+# on the objectives of the (Hoh) tribe.
+
+# Test function 4
+script1_function(csv_files, rawdata_loc, ldrtimes)
+# Works, besides the fact that it only returns the final cropped plot from
+# the csv file list.
