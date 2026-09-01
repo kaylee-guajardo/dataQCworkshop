@@ -42,10 +42,10 @@ ldrtimes = readxl::read_xlsx(paste0(ldrtimes_loc, ldrtimes_fn))
 # Create singular csv_file object to run function on
 csv_file <- csv_files[1]
 
-# FUNCTION 1: Crop raw data ----
-crop_raw_data <- function(rawdata_loc, # Raw data location filepath
-                          cropped_loc, # Cropped data location filepath
-                          csv_file, # List of raw data csv files
+# FUNCTION 1: Prep raw data ----
+prep_raw_data <- function(rawdata_loc, # Raw data location filepath
+                          #cropped_loc, # Cropped data location filepath - commenting out for now
+                          csv_file, # A single raw data csv file - defined as object above
                           ldrtimes # LDR dataset
                           ){
 
@@ -91,6 +91,28 @@ crop_raw_data <- function(rawdata_loc, # Raw data location filepath
         dplyr::mutate(datetime = lubridate::mdy_hm(datetime)) #for datetime in hh:mm
     }
   )
+
+  return(this.data)
+
+}
+
+# Test function 1
+this.data <- prep_raw_data(rawdata_loc, csv_file, ldrtimes)
+# Works on a single csv file object, great!
+
+# FUNCTION 2: Crop raw data ----
+crop_raw_data <- function(this.data, # Output of previous function (prepared data for cropping)
+                          csv_file, # A single raw data csv file - defined as object above
+                          ldrtimes # LDR dataset
+                          ){
+
+  # extract metadata from the filename
+  filename.parts = stringr::str_split_1(csv_file, '[_.]') # Follows req'd
+  # structure defined previously: site_media_season_year
+  csv.site = filename.parts[1]
+  csv.media = filename.parts[2]
+  csv.season = filename.parts[3]
+  csv.year = filename.parts[4]
 
   # crop the data (still in same for loop, so automated after date-time is processed)
   deploy.retrieval = ldrtimes %>%
@@ -142,19 +164,51 @@ crop_raw_data <- function(rawdata_loc, # Raw data location filepath
 
 }
 
-# Test function 1
-crop_raw_data(rawdata_loc, cropped_loc, csv_file, ldrtimes)
-# Works on a single csv file object, great!
+# Test function 2: crop raw data
+cropped.data <- crop_raw_data(this.data, csv_file, ldrtimes)
+# Great, works!
+# ASK JESS: is best practice to create an object like so? (Show overall written planned structure when discussing this)
 
-# FUNCTION 2: Plot cropped data -----
-plot_cropped_data <- function(rawdata_loc, # Raw data location filepath
-                          cropped_loc, # Cropped data location filepath
-                          croppedplots_loc, # Cropped plots location filepath
-                          csv_files, # List of raw data csv files
-                          ldrtimes # LDR dataset
+# FUNCTION 3: Plot cropped data -----
+plot_cropped_data <- function(cropped.data, # Single cropped data object
+                              this.data, # Output of previous
+                              # croppedplots_loc, # Cropped plots location filepath - commenting out for now
+                              ldrtimes # LDR dataset
                           ){
 
+  # Create a dataframe of the raw and cropped data
+  cropvraw <- dplyr::left_join(this.data, cropped.data, by=c("row.num", "datetime")) %>% # Cropped data is joined to original raw df
+    dplyr::rename(raw.temp = temperature.x, # Rename columns, such that raw.temp holds the raw temperature
+                  cropped.temp = temperature.y) %>% # Cropped temp. has cropped temperature
+    #create new column of data type (raw or cropped for plotting in ggplot)
+    tidyr::pivot_longer(cols = raw.temp:cropped.temp, # Pivot longer style
+                        names_to="type", values_to="temp")
+  # Plot cropped data
+  cropvraw.plot <- ggplot2::ggplot(cropvraw,
+                                   ggplot2::aes(x = datetime,
+                                                y = temp,
+                                                color = type)) +
+    ggplot2::geom_line(na.rm=TRUE) + # Line through points
+    ggplot2::geom_point(na.rm=TRUE) + # Scatterplot
+    ggplot2::labs(title = paste0(" Raw versus Cropped data"),
+                  x = "Date", y = "Temperature (C)")+
+    ggplot2::theme(axis.text = ggplot2::element_text(colour = "black", size = (12)))
+
+  #######
+  # Commenting out for now - ask Jess if we want to give option to download cropped plots images in RShiny
+  #ggplot2::ggsave(paste0(croppedplots_loc, csv.site, "_", # Save created plot as image file
+                         #csv.media, "_rawvscroppeddata.png"),
+                  #cropvraw.plot,
+                  #width = 11, height = 8.5, units = "in")
+  ######
+
+  return(cropvraw.plot)
+
 }
+
+# Test function 3: plot cropped data
+plot_cropped_data(cropped.data, this.data, ldrtimes)
+# Sweet, works!
 
 # JESS CODE ----
 # Initiate for loop to crop raw data files...
